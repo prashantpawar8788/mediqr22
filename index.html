@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#166534">
+<title>MediQR 22 — Real Scanner</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f4f7f5;color:#142019}
+header{background:#166534;color:#fff;padding:22px 18px;border-radius:0 0 24px 24px}
+h1{margin:0;font-size:28px}header p{margin:5px 0 0;font-size:16px;opacity:.92}
+main{max-width:680px;margin:auto;padding:16px}.card{background:#fff;border-radius:18px;padding:18px;margin:14px 0;box-shadow:0 3px 15px #0001}
+button,input,select{font:inherit;width:100%;padding:13px;border-radius:12px;border:1px solid #cbd6cf;background:#fff}
+button{cursor:pointer}.primary{background:#166534;color:#fff;border:0;font-weight:700}.danger{background:#fff0f0}
+.title{font-size:22px;font-weight:800}.muted{font-size:13px;color:#617068}
+#reader{width:100%;overflow:hidden;border-radius:16px}.status{padding:12px;border-radius:12px;background:#eef7f1;margin-top:10px}
+.info{padding:14px;border-radius:12px;background:#f1f8f4;margin:9px 0}.warn{background:#fff5df}
+.hidden{display:none}.row{display:flex;gap:10px}.row>*{flex:1}
+</style>
+</head>
+<body>
+<header><h1>💊 MediQR 22</h1><p>Real QR/barcode scanner + multilingual medicine information</p></header>
+<main>
+<section id="home">
+<div class="card">
+<label><b>🌐 Language</b></label><br>
+<select id="lang">
+<option>English</option><option>हिन्दी</option><option>मराठी</option><option>বাংলা</option><option>ગુજરાતી</option><option>ਪੰਜਾਬੀ</option><option>தமிழ்</option><option>తెలుగు</option><option>ಕನ್ನಡ</option><option>മലയാളം</option><option>ଓଡ଼ିଆ</option><option>অসমীয়া</option><option>اردو</option><option>संस्कृतम्</option><option>कोंकणी</option><option>नेपाली</option><option>کٲشُر</option><option>मैथिली</option><option>سنڌي</option><option>डोगरी</option><option>মৈতৈলোন</option><option>बड़ो</option>
+</select>
+</div>
+<div class="card">
+<button class="primary" onclick="startScanner()">📷 Start Real Camera Scanner</button><br><br>
+<button onclick="document.getElementById('imageFile').click()">🖼️ Scan QR/Barcode From Photo</button>
+<input id="imageFile" type="file" accept="image/*" capture="environment" class="hidden" onchange="scanImage(this.files[0])">
+</div>
+<div class="card">
+<button onclick="openDemo()">💊 Open Demo Medicine</button>
+</div>
+<div class="card muted">
+<b>Important:</b> QR/barcode scanning identifies the encoded value. A production medicine result must be matched to a verified medicine database/manufacturer source; a QR code does not necessarily contain the medicine name itself.
+</div>
+</section>
+
+<section id="scanner" class="hidden">
+<div class="card">
+<button onclick="stopScanner()">← Stop Scanner</button>
+<div class="title">Scan Medicine</div>
+<p>Allow camera permission and place the QR/barcode inside the frame.</p>
+<div id="reader"></div>
+<div id="scanStatus" class="status">Waiting for camera…</div>
+</div>
+</section>
+
+<section id="result" class="hidden">
+<div class="card">
+<button onclick="goHome()">← Scan another</button>
+<div class="title">Scan Result</div>
+<div id="raw" class="info"></div>
+<div id="match"></div>
+</div>
+</section>
+
+<section id="medicine" class="hidden">
+<div class="card">
+<button onclick="goHome()">← Back</button>
+<div class="title">Paracetamol 500 mg</div>
+<p>Paracetamol / Acetaminophen • 500 mg • Tablet</p>
+<div class="info"><b>Manufacturer</b><br>Demo Manufacturer</div>
+<div class="info"><b>Uses</b><br>Demo content for testing the application interface. Production information must be verified.</div>
+<div class="info"><b>Dosage</b><br>Follow the product label or advice from a qualified doctor/pharmacist. Do not use this demo as dosing advice.</div>
+<div class="info"><b>Side effects</b><br>Nausea, stomach discomfort or allergic reactions may occur. Severe reactions require urgent medical attention.</div>
+<div class="info warn"><b>⚠ Warnings</b><br>Do not exceed the approved dose. Check other medicines for the same active ingredient.</div>
+<div class="info"><b>Storage</b><br>Store according to the package label, away from excessive heat and moisture.</div>
+</div>
+</section>
+</main>
+
+<script>
+let scanner=null;
+const demoCodes={
+ "MEDIQR22:PARA500":true,
+ "890000000001":"para",
+ "PARA500":"para"
+};
+function hideAll(){["home","scanner","result","medicine"].forEach(id=>document.getElementById(id).classList.add("hidden"))}
+function goHome(){if(scanner){scanner.clear().catch(()=>{});scanner=null}hideAll();document.getElementById("home").classList.remove("hidden")}
+function openDemo(){hideAll();document.getElementById("medicine").classList.remove("hidden")}
+function startScanner(){
+ hideAll();document.getElementById("scanner").classList.remove("hidden");
+ document.getElementById("scanStatus").textContent="Requesting camera permission…";
+ scanner=new Html5Qrcode("reader");
+ scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:250,height:250}},
+  decoded=>{document.getElementById("scanStatus").textContent="Scanned successfully."; handleCode(decoded);},
+  ()=>{}
+ ).catch(err=>{
+  document.getElementById("scanStatus").innerHTML="Camera could not start. Use <b>Scan From Photo</b> from the home screen, or open this page from HTTPS.";
+ });
+}
+function stopScanner(){goHome()}
+function handleCode(code){
+ if(scanner){scanner.stop().catch(()=>{});scanner=null}
+ hideAll();document.getElementById("result").classList.remove("hidden");
+ document.getElementById("raw").innerHTML="<b>Encoded value</b><br>"+escapeHtml(code);
+ const match=document.getElementById("match");
+ if(demoCodes[code]){
+   match.innerHTML='<button class="primary" onclick="openDemo()">Open matched medicine: Paracetamol 500 mg</button>';
+ }else{
+   match.innerHTML='<div class="info warn"><b>Medicine not found in the local demo database.</b><br>This is where the production backend will look up the scanned product identifier, batch/serial data or URL.</div><button onclick="goHome()">Scan another medicine</button>';
+ }
+}
+async function scanImage(file){
+ if(!file)return;
+ if("BarcodeDetector" in window){
+  try{
+   const detector=new BarcodeDetector({formats:["qr_code","ean_13","ean_8","code_128","data_matrix","upc_a","upc_e"]});
+   const codes=await detector.detect(await createImageBitmap(file));
+   if(codes.length){handleCode(codes[0].rawValue);return;}
+  }catch(e){}
+ }
+ alert("This browser could not decode the selected image. Try Start Real Camera Scanner, or use Chrome with camera access.");
+}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+</script>
+</body>
+</html>
